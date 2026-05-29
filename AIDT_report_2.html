@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIDT 倫理分析</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+    background: #0a0a0a;
+    color: #e8e8e8;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  /* LEFT SIDEBAR */
+  .sidebar {
+    background: #111;
+    border-right: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 20px;
+    gap: 6px;
+  }
+
+  .sidebar-title {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #222;
+  }
+
+  .nav-item {
+    font-size: 14px;
+    color: #666;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-item:hover { background: #1a2a0a; color: #c8f060; }
+  .nav-item.active { background: #1e1e1e; color: #e8e8e8; }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #333;
+    flex-shrink: 0;
+  }
+  .nav-item.active .nav-dot { background: #c8f060; }
+
+  /* MAIN AREA */
+  .main {
+    overflow: hidden;
+    position: relative;
+  }
+
+  .panel {
+    position: absolute;
+    inset: 0;
+    padding: 32px 40px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* PANEL HEADER */
+  .panel-label {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .panel-title {
+    font-size: 36px;
+    font-weight: 500;
+    color: #f0f0f0;
+    margin-bottom: 28px;
+    line-height: 1.2;
+  }
+
+  .accent { color: #c8f060; }
+
+  /* CARDS GRID */
+  .cards {
+    display: grid;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 18px 20px;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .card:hover {
+    background: #2a2a1a;
+    border-color: #c8f060;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(200, 240, 96, 0.1);
+  }
+
+  .card-label {
+    font-size: 12px;
+    color: #555;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .card-title {
+    font-size: 17px;
+    font-weight: 500;
+    color: #e0e0e0;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .card-body {
+    font-size: 15px;
+    color: #888;
+    line-height: 1.7;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-right: 6px;
+    margin-top: 8px;
+  }
+
+  .tag-green { background: #1a2a0a; color: #c8f060; border: 1px solid #2a3a10; }
+  .tag-red { background: #2a0a0a; color: #f06060; border: 1px solid #3a1010; }
+  .tag-blue { background: #0a1a2a; color: #60a0f0; border: 1px solid #102030; }
+  .tag-amber { background: #2a1a00; color: #f0b060; border: 1px solid #3a2a00; }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: #222;
+    margin: 16px 0;
+  }
+
+  /* ARGUMENT FLOW */
+  .arg-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+  }
+
+  .arg-block {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+  }
+
+  .arg-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 32px;
+    flex-shrink: 0;
+  }
+
+  .arg-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .arg-dot-p1 { background: #1a2a0a; color: #c8f060; border: 1px solid #2a3a10; }
+  .arg-dot-p2 { background: #0a1a2a; color: #60a0f0; border: 1px solid #102030; }
+  .arg-dot-c  { background: #2a1500; color: #f0b060; border: 1px solid #3a2000; }
+
+  .arg-line {
+    width: 1px;
+    flex: 1;
+    background: #222;
+    margin: 4px 0;
+  }
+
+  .arg-content {
+    flex: 1;
+    padding-bottom: 16px;
+  }
+
+  .arg-content-last { padding-bottom: 0; }
+
+  /* STAKEHOLDER GRID */
+  .stake-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    flex: 1;
+  }
+
+  .stake-card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 16px;
+    transition: all 0.2s;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stake-card:hover {
+    background: #1a2a1a;
+    border-color: #c8f060;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(200, 240, 96, 0.12);
+  }
+
+  .stake-num {
+    font-size: 12px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .stake-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #e0e0e0;
+    line-height: 1.4;
+  }
+
+  .stake-benefit {
+    font-size: 13px;
+    color: #c8f060;
+    line-height: 1.6;
+  }
+
+  .stake-risk {
+    font-size: 13px;
+    color: #f06060;
+    line-height: 1.6;
+  }
+
+  .stake-section-label {
+    font-size: 11px;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  /* COUNTER GRID */
+  .counter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex: 1;
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 14px 16px;
+    transition: all 0.2s;
+  }
+
+  .stat-card:hover { 
+    background: #1a2a0a; 
+    border-color: #c8f060; 
+    box-shadow: 0 4px 12px rgba(200, 240, 96, 0.15);
+  }
+
+  .stat-num {
+    font-size: 28px;
+    font-weight: 500;
+    color: #c8f060;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  /* FOOTER NAV */
+  .footer-nav {
+    position: fixed;
+    bottom: 20px;
+    right: 32px;
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+
+  .footer-btn {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #888;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .footer-btn:hover { background: #2a2a1a; color: #c8f060; border-color: #c8f060; }
+
+  /* INTERVIEW PANEL */
+  .quote-block {
+    background: #141414;
+    border-left: 2px solid #c8f060;
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+  }
+
+  .quote-text {
+    font-size: 16px;
+    color: #d0d0d0;
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  .quote-attr {
+    font-size: 12px;
+    color: #555;
+    margin-top: 10px;
+  }
+
+  /* LIMIT PANEL */
+  .limit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .limit-card {
+    background: #141414;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 18px 20px;
+    transition: all 0.2s;
+  }
+
+  .limit-card:hover { 
+    background: #2a2a1a; 
+    border-color: #c8f060; 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 16px rgba(200, 240, 96, 0.1);
+  }
+
+  .limit-card.affirm { border-left: 2px solid #c8f060; }
+  .limit-card.limit  { border-left: 2px solid #f0b060; }
+
+  .arrow-down {
+    text-align: center;
+    color: #333;
+    font-size: 18px;
+    margin: 4px 0;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-title">AIDT 倫理分析</div>
+  <div class="nav-item active" onclick="goTo(0)"><span class="nav-dot"></span>案例背景</div>
+  <div class="nav-item" onclick="goTo(1)"><span class="nav-dot"></span>利害關係人</div>
+  <div class="nav-item" onclick="goTo(2)"><span class="nav-dot"></span>Is / Ought</div>
+  <div class="nav-item" onclick="goTo(3)"><span class="nav-dot"></span>P1 → P2 → C</div>
+  <div class="nav-item" onclick="goTo(4)"><span class="nav-dot"></span>反論與駁斥</div>
+  <div class="nav-item" onclick="goTo(5)"><span class="nav-dot"></span>立場限定</div>
+  <div class="nav-item" onclick="goTo(6)"><span class="nav-dot"></span>田野調查</div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- 0. 案例背景 -->
+  <section class="panel active">
+    <div class="panel-label">案例說明</div>
+    <div class="panel-title">韓國 <span class="accent">AI 數位教科書</span>（AIDT）</div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">8<span style="font-size:14px">月</span></div>
+        <div class="stat-desc">開發時程<br>（常規需 18 個月）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">52<span style="font-size:14px">%</span></div>
+        <div class="stat-desc">教材審查<br>通過率</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">87<span style="font-size:14px">%+</span></div>
+        <div class="stat-desc">學校反映<br>準備不足</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">10,000<span style="font-size:12px">+</span></div>
+        <div class="stat-desc">個人資料<br>外洩筆數</div>
+      </div>
+    </div>
+
+    <div class="cards" style="grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;">
+      <div class="card">
+        <div class="card-label">系統功能</div>
+        <div class="card-title">即時行為追蹤</div>
+        <div class="card-body">蒐集答題正確率、反應時間、錯誤模式，動態調整學習內容難度與類型</div>
+      </div>
+      <div class="card">
+        <div class="card-label">政策定位</div>
+        <div class="card-title">個人化學習國家方案</div>
+        <div class="card-body">賦予正式教科書地位，目標「不讓任何學生落後」，主要依賴技術樂觀論</div>
+      </div>
+      <div class="card">
+        <div class="card-label">事實爭議 Is</div>
+        <div class="card-title">承諾與現實的落差</div>
+        <div class="card-body">教育成效缺乏實證支持；資料基礎建設不完善；逾 80% 教師持否定態度</div>
+        <span class="tag tag-red">準備不足</span>
+        <span class="tag tag-red">資安漏洞</span>
+      </div>
+      <div class="card">
+        <div class="card-label">規範爭議 Ought</div>
+        <div class="card-title">誰的專業被忽視？</div>
+        <div class="card-body">未充分諮詢教師、未確立資料保護、未驗證教學效果，即強制制度化</div>
+        <span class="tag tag-amber">教師自主權</span>
+        <span class="tag tag-amber">學生資料權</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1. 利害關係人 -->
+  <section class="panel">
+    <div class="panel-label">BRiCS 分析</div>
+    <div class="panel-title">五個<span class="accent">利害關係人</span></div>
+
+    <div class="stake-grid">
+      <div class="stake-card">
+        <div><div class="stake-num">S1</div><div class="stake-name">中小學學生</div></div>
+        <div><div class="stake-section-label">效益</div><div class="stake-benefit">個人化教學、即時回饋</div></div>
+        <div><div class="stake-section-label">風險</div><div class="stake-risk">個資外洩、弱勢學生被邊緣化、聯考目的混淆</div></div>
+      </div>
+      <div class="stake-card">
+        <div><div class="stake-num">S2</div><div class="stake-name">學生家長</div></div>
+        <div><div class="stake-section-label">效益</div><div class="stake-benefit">即時掌握子女學習數據</div></div>
+        <div><div class="stake-section-label">風險</div><div class="stake-risk">城鄉數位落差擴大、資料安全集體焦慮</div></div>
+      </div>
+      <div class="stake-card">
+        <div><div class="stake-num">S3</div><div class="stake-name">教師</div></div>
+        <div><div class="stake-section-label">效益</div><div class="stake-benefit">領頭教師獲政府資金支持</div></div>
+        <div><div class="stake-section-label">風險</div><div class="stake-risk">未納入設計、培訓不足、額外勞動成本</div></div>
+      </div>
+      <div class="stake-card">
+        <div><div class="stake-num">S4</div><div class="stake-name">教育科技企業</div></div>
+        <div><div class="stake-section-label">效益</div><div class="stake-benefit">國家背書市場機會</div></div>
+        <div><div class="stake-section-label">風險</div><div class="stake-risk">審查標準模糊、146 件僅 76 件通過、訴訟風險</div></div>
+      </div>
+      <div class="stake-card">
+        <div><div class="stake-num">S5</div><div class="stake-name">公民社會</div></div>
+        <div><div class="stake-section-label">效益</div><div class="stake-benefit">十萬人連署推動政策辯論</div></div>
+        <div><div class="stake-section-label">風險</div><div class="stake-risk">納稅資源浪費、AI 政策信任感崩潰</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Is / Ought -->
+  <section class="panel">
+    <div class="panel-label">主張辨識</div>
+    <div class="panel-title">為什麼選擇 <span class="accent">S1 學生</span>？</div>
+
+    <div class="cards" style="grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto 1fr;">
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-label">選擇理由：權力不對稱</div>
+        <div class="card-body" style="color:#bbb">學生是唯一無法拒絕參與、無法撤回授權資料的行動者。教師可選擇教學方式、家長可選擇學校、企業可決定是否參與——學生面臨的是<span style="color:#c8f060">「系統強制」</span>，是最脆弱的倫理主體。</div>
+      </div>
+      <div class="card">
+        <div class="card-label">人格尊嚴</div>
+        <div class="card-title">不應成為實驗對象</div>
+        <div class="card-body">未成年人享有特別保護的道德地位，不應被視為資料採集對象或演算法實驗的被測試者</div>
+        <span class="tag tag-blue">義務論</span>
+      </div>
+      <div class="card">
+        <div class="card-label">知情同意</div>
+        <div class="card-title">同意形同虛設</div>
+        <div class="card-body">98.5% 教師培訓不足，無法向學生解釋系統如何使用其資料——知情同意在現場無法真實發生</div>
+        <span class="tag tag-blue">兒童權利公約</span>
+      </div>
+      <div class="card">
+        <div class="card-label">最小必要原則</div>
+        <div class="card-title">是個人化還是過度監控？</div>
+        <div class="card-body">即時追蹤答題正確率、反應時間、錯誤模式是否皆屬必要，抑或屬於過度的行為監控？</div>
+        <span class="tag tag-amber">脈絡整合性</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. P1 → P2 → C -->
+  <section class="panel">
+    <div class="panel-label">論證建構</div>
+    <div class="panel-title"><span class="accent">P1 → P2 → C</span> 規範論證</div>
+
+    <div class="arg-flow">
+      <div class="arg-block">
+        <div class="arg-connector">
+          <div class="arg-dot arg-dot-p1">P1</div>
+          <div class="arg-line"></div>
+        </div>
+        <div class="arg-content">
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-label">事實前提 — Lee et al. (2026)</div>
+            <div class="card-body" style="color:#ccc">AIDT 以 8 個月完成開發，審查通過率僅 52%；98.5% 教師培訓不足；已發生逾萬筆個資外洩。數據稀少的學生（新移民子女、身障生）提供資料卻無法獲益。</div>
+            <span class="tag tag-red">純 Is，無規範詞</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arg-block">
+        <div class="arg-connector">
+          <div class="arg-dot arg-dot-p2">P2</div>
+          <div class="arg-line"></div>
+        </div>
+        <div class="arg-content">
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-label">規範前提 — 義務論 ＋ 分配正義</div>
+            <div class="card-body" style="color:#ccc">未成年人享有不可因教育承諾而削弱的隱私保護義務（《兒童權利公約》第 3、16 條）。當弱勢學生只承擔風險卻無法獲益，系統設計本身構成分配不正義，責任應由部署方承擔。</div>
+            <span class="tag tag-blue">義務論</span>
+            <span class="tag tag-amber">分配正義</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arg-block">
+        <div class="arg-connector">
+          <div class="arg-dot arg-dot-c">C</div>
+        </div>
+        <div class="arg-content arg-content-last">
+          <div class="card" style="border-color: #2a3a10; margin-bottom: 0;">
+            <div class="card-label">結論</div>
+            <div class="card-body" style="color:#ccc">韓國教育部在未建立 <span style="color:#c8f060">（1）知情同意機制、（2）替代學習方案、（3）獨立資安稽核</span> 前，不應強制部署 AIDT 並蒐集學生細粒度行為資料。系統造成傷害時，教育部與開發商應承擔主要賠償責任。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 反論與駁斥 -->
+  <section class="panel">
+    <div class="panel-label">反論識別與駁斥</div>
+    <div class="panel-title">來自 <span class="accent">S4 企業</span>的反論</div>
+
+    <div class="counter-grid">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="card" style="border-left: 2px solid #f06060;">
+          <div class="card-label">最強版反論</div>
+          <div class="card-title">「企業是被動配合方，不應承擔連帶責任」</div>
+          <div class="card-body">企業在政府強制時程與模糊審查標準下投入資源，屬制度性壓迫下的被動配合。要求企業連帶課責，將形成寒蟬效應，使公共教育科技市場萎縮，最終受害的是學生。</div>
+          <span class="tag tag-red">保護商業可預期性</span>
+          <span class="tag tag-red">中小型開發商利益</span>
+        </div>
+        <div class="card">
+          <div class="card-label">此反論值得認真對待，因為...</div>
+          <div class="card-body">它保護了教育科技產業的中小型開發商的商業可預期性與制度公平性利益。若採納我們的論證，可能形成寒蟬效應，使公共教育科技市場萎縮。</div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="card" style="border-left: 2px solid #c8f060;">
+          <div class="card-label">駁斥：為何反論仍無法成立</div>
+          <div class="card-title">政治壓力 ≠ 專業判斷義務的消失</div>
+          <div class="card-body">企業具備獨立評估資安風險的專業能力，這正是其參與競標的前提資格。當開發時程不足以確保資安品質，其義務是主動揭露風險或拒絕交付——「執行命令」在醫療、工程倫理中從未被接受為免責理由。</div>
+          <span class="tag tag-green">德性論</span>
+        </div>
+        <div class="card">
+          <div class="card-label">反論的自我矛盾</div>
+          <div class="card-body">反論擔憂的「寒蟬效應」恰好說明了相反結論：若企業可在不合理條件下交付缺陷系統並免責，這才是獎勵「配合換合約」而非「誠信換信任」的危險誘因結構。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 立場限定 -->
+  <section class="panel">
+    <div class="panel-label">自身立場限定</div>
+    <div class="panel-title">何種情境下<span class="accent">成立或需修正</span>？</div>
+
+    <div class="limit-grid">
+      <div class="limit-card affirm">
+        <div class="card-label">完全成立的情境</div>
+        <div class="card-title" style="color:#c8f060; margin-bottom: 10px;">強制普及 ＋ 無法退出</div>
+        <div class="card-body">當 AIDT 被強制納入正規課程、學生無法選擇退出，且資料蒐集涵蓋細粒度行為追蹤時，義務論的保護義務具有最高優先性。任何以教育效益或產業發展為由的豁免主張均不能成立。</div>
+        <div style="margin-top: 10px;">
+          <span class="tag tag-green">義務論優先</span>
+          <span class="tag tag-green">不可豁免</span>
+        </div>
+      </div>
+
+      <div class="limit-card limit">
+        <div class="card-label">需要限定的情境</div>
+        <div class="card-title" style="color:#f0b060; margin-bottom: 10px;">自願試驗 ＋ 充分保障</div>
+        <div class="card-body">若情境轉為自願參與的有限試驗計畫，且同時滿足：學生與家長可隨時退出、替代方案存在、資料蒐集符合最小必要原則，則有限度的試驗性部署在倫理上具有可辯護空間。</div>
+        <div style="margin-top: 10px;">
+          <span class="tag tag-amber">比例責任</span>
+          <span class="tag tag-amber">效益可納入權衡</span>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-label">限定的本質</div>
+        <div class="card-body" style="color:#bbb">此限定並非對原論證的退讓，而是對<span style="color:#c8f060">「強制普及」</span>與<span style="color:#f0b060">「知情自願試驗」</span>在倫理性質上的精確區分：前者觸動的是不可讓渡的基本權利，後者在充分保障的前提下可納入效益權衡。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. 田野調查 -->
+  <section class="panel">
+    <div class="panel-label">田野調查（非正式）</div>
+    <div class="panel-title">訪談<span class="accent">政大教育所</span>碩士生</div>
+
+    <div class="cards" style="grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr auto;">
+      <div style="grid-column: 1 / -1;">
+        <div class="quote-block">
+          <div class="quote-text">「AIDT 這類系統在設計邏輯上預設了一個『標準學習者』，但現實教室裡根本不存在這種人。」</div>
+          <div class="quote-attr">政大教育所碩士生，曾於臺灣某縣市國中擔任教育實習</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">強化論證的觀點</div>
+        <div class="card-title">「標準學習者」預設的代價</div>
+        <div class="card-body">行為模式異常的弱勢學生（新移民、學習障礙生）會被系統標記為「低能力」，固化本應被打破的偏見。教師的典型反應是「不知道如何向家長解釋」——知情同意在現場形同虛設。</div>
+        <span class="tag tag-green">強化 P1</span>
+        <span class="tag tag-green">強化 C</span>
+      </div>
+
+      <div class="card">
+        <div class="card-label">挑戰論證的觀點</div>
+        <div class="card-title">「完全不用不見得更好」</div>
+        <div class="card-body">若系統輸出由受訓教師詮釋與調節，而非直接作為評量依據，部分風險是可以被管理的。這提示論證需處理「資料詮釋權歸屬」，不只是限制蒐集。</div>
+        <span class="tag tag-amber">輕微挑戰</span>
+      </div>
+
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card-label">BRiCS 修正 — S3 教師欄補充第四項條件</div>
+        <div class="card-body" style="color:#bbb">應在原有三項前提條件之外補充：<span style="color:#c8f060">建立教師資料素養培訓機制</span>，使教師具備詮釋、質疑與必要時否決系統輸出結論的專業能力。論證從「限制資料蒐集」延伸至「確保人類判斷不被系統取代」。</div>
+        <span class="tag tag-blue">德性論</span>
+        <span class="tag tag-green">第四項條件</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER NAV -->
+<div class="footer-nav">
+  <button class="footer-btn" onclick="prev()">← 上一頁</button>
+  <button class="footer-btn" onclick="next()">下一頁 →</button>
+</div>
+
+<script>
+  let current = 0;
+  const panels = document.querySelectorAll('.panel');
+  const navItems = document.querySelectorAll('.nav-item');
+  const total = panels.length;
+
+  function goTo(index) {
+    panels[current].classList.remove('active');
+    navItems[current].classList.remove('active');
+    current = index;
+    panels[current].classList.add('active');
+    navItems[current].classList.add('active');
+  }
+
+  function next() { if (current < total - 1) goTo(current + 1); }
+  function prev() { if (current > 0) goTo(current - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev();
+  });
+</script>
+</body>
+</html>
